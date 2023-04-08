@@ -39,6 +39,7 @@ public class ActorParent : MonoBehaviour
         Destroy(this.gameObject, 15f);
         GetComponentInChildren<Animator>().enabled = false;
         this.GetComponent<NavMeshAgent>().enabled = false;
+        //navMeshAgent.isStopped = true;
         SetRigidBodyState(false);
         SetColliderState(true);
         this.GetComponentInChildren<Rigidbody>().AddForce(-deathForceDir * hpScript.InformDamageBuffer() * 2f, ForceMode.Impulse);

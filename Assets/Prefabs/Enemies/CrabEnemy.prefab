@@ -1379,9 +1379,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   target: {fileID: 0}
+  player: {fileID: 0}
   hpScript: {fileID: 6474546933139645749}
   isActive: 0
-  moveSpeed: 3
+  moveSpeed: 6
   damage: 15
   range: 3
   preAttackWindUp: 1

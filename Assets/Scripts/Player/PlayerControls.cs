@@ -8,6 +8,7 @@ public class PlayerControls : MonoBehaviour
     public GameObject weapon;
     public CharacterController control;
     public MouseLook mLook;
+    public PlayerStats stats;
 
     public void OnShoot(InputValue inputValue){
         if(inputValue.isPressed){
@@ -29,6 +30,6 @@ public class PlayerControls : MonoBehaviour
     }
 
     public void OnJet(InputValue value){
-        if(value.isPressed) control.Jet();
+        control.Jet();
     } 
 }

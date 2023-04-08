@@ -11,9 +11,13 @@ public class CharacterController : MonoBehaviour
     public float groundDrag;
     public float jumpForce;
     public float jumpCooldown;
+    public float jumpBufferTime;
+    public bool jumpBuffer;
     public float airMultiplier;
     public bool readyToJump;
     public float gravityValue;
+    public float jetStrength;
+    private bool jetting;
 
     [Header("Ground check")]
     public float playerHeight;
@@ -26,10 +30,11 @@ public class CharacterController : MonoBehaviour
     public bool exitingSlope;
 
     public Transform orientation;
-
+    [SerializeField] private PlayerStats stats;
     public Vector2 inputDir;
 
-    [SerializeField] Vector3 moveDirection;
+    [SerializeField] Vector3 currentVelocity;
+    Vector3 moveDirection;
     Rigidbody rb;
 
     public void Start(){
@@ -39,6 +44,7 @@ public class CharacterController : MonoBehaviour
     }
 
     public void Update(){
+        currentVelocity = rb.velocity;
         grounded = Physics.Raycast(transform.position, Vector3.down, playerHeight * 0.5f + 0.2f, whatIsGround);
         SpeedControl();
 
@@ -50,6 +56,20 @@ public class CharacterController : MonoBehaviour
 
     public void FixedUpdate(){
         moveDirection = orientation.forward * inputDir.y + orientation.right * inputDir.x;
+
+        if(jumpBuffer && grounded && readyToJump){
+            exitingSlope = true;
+            readyToJump = false;
+
+            rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+
+            rb.AddForce(transform.up * jumpForce, ForceMode.Impulse);
+            jumpBuffer = false;
+        }
+
+        if(jetting && stats.oxygen > 0){
+            rb.AddForce(transform.up * jetStrength, ForceMode.Force);
+        }
 
         if(OnSlope() && !exitingSlope){
             rb.AddForce(GetSlopeMoveDirection() * moveSpeed * 15f, ForceMode.Force);
@@ -72,11 +92,16 @@ public class CharacterController : MonoBehaviour
         }
         else{
             Vector3 flatVel = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+            Vector3 jetVel = new Vector3(0f, rb.velocity.y, 0f);
         
             if(flatVel.magnitude > moveSpeed){
                 Vector3 limitedVel = flatVel.normalized * moveSpeed;
                 rb.velocity = new Vector3(limitedVel.x, rb.velocity.y, limitedVel.z);
-        }
+            }
+            if(jetVel.y > moveSpeed){
+                Vector3 limitedJetVel = jetVel.normalized * moveSpeed * 0.75f;
+                rb.velocity = new Vector3(rb.velocity.x, limitedJetVel.y, rb.velocity.z);
+            }
         }
     }
 
@@ -93,11 +118,11 @@ public class CharacterController : MonoBehaviour
     }
 
     public void Jump(){
-        exitingSlope = true;
-
-        rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
-
-        rb.AddForce(transform.up * jumpForce, ForceMode.Impulse);
+        jumpBuffer = true;
+        Invoke(nameof(JumpBufferReset), jumpBufferTime);
+    }
+    public void JumpBufferReset(){
+        jumpBuffer = false;
     }
     public void ResetJump(){
         readyToJump = true;
@@ -105,8 +130,7 @@ public class CharacterController : MonoBehaviour
     }
 
     public void InvokeJumpExternal(){
-        if(grounded && readyToJump){
-            readyToJump = false;
+        if(readyToJump){
             Jump();
             Invoke("ResetJump", jumpCooldown);
         }
@@ -115,6 +139,14 @@ public class CharacterController : MonoBehaviour
     // boomer shooter only, not necessarily universal
 
     public void Jet(){
-        
+        jetting = !jetting;
+
+        if(jetting){
+            stats.OxyReduceInvoke();
+        }
+        else if (!jetting){
+            stats.CancelOxyReduceInvoke();
+        }
+        print("jetting");
     }
 }

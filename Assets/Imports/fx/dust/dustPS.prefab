@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 3472391831955359170}
   - component: {fileID: 3472391831955359171}
   - component: {fileID: 3472391831955359168}
-  m_Layer: 0
+  m_Layer: 1
   m_Name: dustPS
   m_TagString: Untagged
   m_Icon: {fileID: 0}

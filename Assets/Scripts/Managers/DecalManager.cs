@@ -23,7 +23,7 @@ public class DecalManager : MonoBehaviour
     public void SpawnDecalFromRay(RaycastHit hitInfo, int decalIndex){
         var decal = Instantiate(decalList[decalIndex], hitInfo.point, Quaternion.identity);
         decal.transform.forward = hitInfo.normal * -1f;
-        decal.transform.position -= decal.transform.forward * 0.5f;
+        decal.transform.position -= decal.transform.forward * 0.1f;
         Destroy(decal, 10f);
         var effect = Instantiate(effectsList[decalIndex], hitInfo.point, Quaternion.identity);
         effect.transform.forward = hitInfo.normal * -1f;

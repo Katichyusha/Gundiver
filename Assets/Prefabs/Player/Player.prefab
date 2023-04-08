@@ -165,11 +165,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveSpeed: 10
   groundDrag: 10
-  jumpForce: 8
+  jumpForce: 10
   jumpCooldown: 0.25
+  jumpBufferTime: 0.5
+  jumpBuffer: 0
   airMultiplier: 0.7
   readyToJump: 0
   gravityValue: 0
+  jetStrength: 50
   playerHeight: 2
   whatIsGround:
     serializedVersion: 2
@@ -178,8 +181,9 @@ MonoBehaviour:
   maxSlopeAngle: 40
   exitingSlope: 0
   orientation: {fileID: 8305440276835704630}
+  stats: {fileID: 8305440275409697270}
   inputDir: {x: 0, y: 0}
-  moveDirection: {x: 0, y: 0, z: 0}
+  currentVelocity: {x: 0, y: 0, z: 0}
 --- !u!114 &8305440275409697271
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -195,6 +199,7 @@ MonoBehaviour:
   weapon: {fileID: 0}
   control: {fileID: 8305440275409697273}
   mLook: {fileID: 0}
+  stats: {fileID: 8305440275409697270}
 --- !u!114 &8305440275409697270
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -209,6 +214,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxAmmo: 640000006400000064000000
   ammo: 640000006400000064000000
+  playerHealth: {fileID: 8305440275409697269}
+  oxygen: 100
+  oxyReductionAmt: 1
+  oxyReductionInterval: 0.2
 --- !u!114 &8305440275409697269
 MonoBehaviour:
   m_ObjectHideFlags: 0
