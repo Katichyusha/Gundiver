@@ -6,6 +6,7 @@ using UnityEngine.AI;
 public class ActorParent : MonoBehaviour
 {
     [SerializeField] protected Transform target;
+    [SerializeField] protected LayerMask whatIsTarget;
     [SerializeField] protected Transform player;
     [SerializeField] protected Health hpScript;
     public bool isActive;
@@ -35,10 +36,11 @@ public class ActorParent : MonoBehaviour
     }
 
     public virtual void Die(){
+        this.CancelInvoke();
         isActive = false;
         Destroy(this.gameObject, 15f);
         GetComponentInChildren<Animator>().enabled = false;
-        this.GetComponent<NavMeshAgent>().enabled = false;
+        navMeshAgent.enabled = false;
         //navMeshAgent.isStopped = true;
         SetRigidBodyState(false);
         SetColliderState(true);

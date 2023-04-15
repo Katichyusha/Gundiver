@@ -13,7 +13,7 @@ public class PlayerControls : MonoBehaviour
     public void OnShoot(InputValue inputValue){
         if(inputValue.isPressed){
             weapon.SendMessage("Shoot", SendMessageOptions.DontRequireReceiver);
-            print("shot");
+            //print("shot");
         } 
     }
 

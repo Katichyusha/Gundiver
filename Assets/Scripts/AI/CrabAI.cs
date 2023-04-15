@@ -21,7 +21,7 @@ public class CrabAI : ActorParent
     {
         base.Update();
 
-        if(Vector3.Distance(this.transform.position, target.position) < range && !isAttacking){
+        if(Vector3.Distance(this.transform.position, target.position) < range && !isAttacking && isActive){
             isAttacking = true;
             navMeshAgent.isStopped = true;
             Invoke(nameof(Attack), preAttackWindUp);

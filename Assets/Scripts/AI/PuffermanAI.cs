@@ -2,153 +2,239 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Events;
 
 public class PuffermanAI : ActorParent
 {
-    public float damage;
-    public float shortRange; // 0 -> shortrange is for melee attack
-    public float mediumRange;   // shortrange -> mediumrange is for medium range attack
-    public float longRange; // shortrange -> longrange is for spear throw attack, anything above is repositioning
-    public float preAttackWindUp;
+    public float damage; // cqb: 1.0x; mid: 2.0x; far: 1.6x
+    //ranges pertaining to checks for decisions
+    public float closeRange;
+    public float midRange;
+    public float farRange;
+    public float preAttackWindUp; // placeholder until i do it in animation data
     public float postAttackCooldown;
     public bool isAttacking;
+    public bool canAttack; // governed by inter attack cd
+    public bool attackIntent;
+    //public bool doingSomething;
 
-    [Header("State Specific")]
-    public float staggerTime;
-    public bool doingStateBehaviour;
-    public float maxRepositionDistance;
-    public LayerMask whatIsInLOS;
+    [Header("Behaviour Settings")]
+    public float reactionTime = 0.25f; // base
+    public float interAttackCooldown = 0.5f; // possibly gonna be higher
+    public float intentDecay = 1.0f;    // how much time should pass before cancelling the current behaviour if not completed   
+    public float repositionRange = 10.0f; //range is probably okay as is
 
-    public enum States{
-        attacking,  //throwing one of the 3 attacks
-        fleeing,    //if hp low enough to find random position anywhere close and away from player
-        repositioning,  // find closest edge
-        assaulting, //go directly to player until in medium range
-        staggered   // stops all behaviour for stagger time
+    public enum NextAction{
+        close,
+        mid,
+        far,
+        assault,
+        reposition
     }
-
-    public States state;
+    public NextAction attackToDo;
+    public UnityEvent ContinueBehaviour;
 
     protected override void Start(){
         base.Start();
         isAttacking = false;
-        state = States.staggered;
+        canAttack = true;
+        attackIntent = false;
+        BeginBehaviourRoutine();
     }
 
-    protected override void Update(){
-        if(!doingStateBehaviour){
-            doingStateBehaviour = true;
-            switch(state){
-                case States.staggered:
-                    Stagger();
+    private Coroutine br;
+    /*  wait until AI can react to player
+        check what attack it can perform at current range from player
+        if it can attack, use decided state to start an attack routine
+        else reposition to a random point*/
+    public IEnumerator BehaviourRoutine(){
+        print("behaviour routine starting");
+        yield return new WaitForSeconds(reactionTime);
+
+        print("checking attack decision");
+        NextAction tempAction = CheckAttack();
+
+        if(canAttack){
+            switch(tempAction){
+                case NextAction.close:
+                    print("starting close attack");
+                    att = StartCoroutine(nameof(CloseAttack));
                     break;
-                case States.attacking:
-                    AttackCheck();
+
+                case NextAction.mid:
+                    print("starting mid attack");
+                    att = StartCoroutine(nameof(MidAttack));
                     break;
-                case States.repositioning:
-                    Reposition();
+
+                case NextAction.far:
+                    print("starting far attack");
+                    att = StartCoroutine(nameof(FarAttack));
                     break;
-                case States.fleeing:
-                    StateIncrement();
+
+                case NextAction.assault:
+                    print("starting to get into range");
+                    GetIntoRange();
+                    att = StartCoroutine(nameof(CheckIfInRange));
                     break;
-                case States.assaulting:
-                    StateIncrement();
-                    break;
-                default:
-                    StateIncrement();
+
+                case NextAction.reposition: //backup incase it returns some weird stuff
+                    mitd = StartCoroutine(nameof(MovementIntentTimeDecay));
+                    RepositionToRandomSpot();
                     break;
             }
         }
+        else if(!canAttack){
+            print("repositioning after decision");
+            mitd = StartCoroutine(nameof(MovementIntentTimeDecay));
+            RepositionToRandomSpot();
+        }
+    }
+    public void BeginBehaviourRoutine(){
+        if(this.isActive)
+            br = StartCoroutine(nameof(BehaviourRoutine));
+        else{
+            this.StopAllCoroutines();
+        }
     }
 
-    public void StateIncrement(){
-        States previous = state;
-        switch(state){
-            case States.staggered:
-                state = States.repositioning;
-                break;
-            case States.fleeing:
-                state = States.attacking;
-                break;
-            case States.repositioning:
-                state = States.attacking;
-                break;
-            case States.assaulting:
-                state = States.attacking;
-                break;
-            case States.attacking:
-                state = States.repositioning;
-                break;
-            default:
-                state = States.repositioning;
-                break;
+
+    // checks the distance to player while ignoring the y coordinate, called only when needed
+    public float CheckRangeToTarget(){
+        print("checking range to target");
+        Vector3 dist1 = this.transform.position;
+        dist1.y = 0;
+        Vector3 dist2 = target.position;
+        dist2.y = 0;
+        
+        float distance = Vector3.Distance(dist1, dist2);
+        return distance;
+    }
+
+    public void ResetInterAttackCooldown(){
+        print("interattack cooldown has reset");
+        canAttack = true;
+    }
+
+    /*  checks how to attack according to range to target and target state
+        targets state must be known before any attacks are undertaken
+        and if it fails to be gotten then the attack routine is cancelled*/
+    private Coroutine att;
+    public NextAction CheckAttack(){
+        print("checking attack");
+        float atRangeOf = CheckRangeToTarget();
+        CharacterController targetCC;
+
+        if(!target.TryGetComponent<CharacterController>(out targetCC)){ // probably wont ever happen
+            print("target character controller not found");
+            return NextAction.reposition;
         }
 
-        if(previous == States.repositioning && hpScript.currHP > hpScript.maxHP){
-            state = States.assaulting;
+        if((midRange < atRangeOf && atRangeOf <= farRange) || targetCC.jetting){
+            print("far attack decided");
+            return NextAction.far;
         }
-        else if(previous == States.repositioning && hpScript.currHP < hpScript.maxHP){
-            state = States.fleeing;
+        else if(atRangeOf <= closeRange){
+            print("close attack decided");
+            return NextAction.close;
         }
-
-        Invoke(nameof(StateBehaviourReset), staggerTime);
-    }
-
-    public void StateBehaviourReset(){
-        doingStateBehaviour = false;
-    }
-
-    #region attack state behaviour
-    public void ShortAttack(){
-        print("short range attack");
-        Invoke(nameof(ResetAttack), postAttackCooldown);
-    }
-
-    public void MediumAttack(){
-        print("medium range attack");
-        Invoke(nameof(ResetAttack), postAttackCooldown);
-    }
-
-    public void LongAttack(){
-        print("long range attack");
-        Invoke(nameof(ResetAttack), postAttackCooldown);
-    }
-
-    public void AttackCheck(){
-            float targetDist = Vector3.Distance(target.transform.position, this.transform.position);
-            if(!isAttacking)
-                isAttacking = true;
-                if(targetDist < shortRange){
-                    ShortAttack();
-                }
-                else if(shortRange < targetDist && targetDist < mediumRange){
-                    MediumAttack();
-                }
-                else if(mediumRange < targetDist && targetDist < longRange){
-                    LongAttack();
-                }
-                else if(longRange < targetDist){
-                    StateIncrement();
-                }
+        else if((closeRange < atRangeOf && atRangeOf <= midRange) && !targetCC.jetting){
+            print("mid attack decided");
+            return NextAction.mid;
         }
+        else{
+            print("assault decided");
+            return NextAction.assault;
+        }
+    }
+
+    #region actual attacking behaviours
+    public IEnumerator CloseAttack(){
+        canAttack = false;
+        StandInPlace();
+        yield return new WaitForSeconds(preAttackWindUp);
+
+        Collider[] hits;
+        hits = Physics.OverlapSphere(this.transform.position, closeRange/2, whatIsTarget, QueryTriggerInteraction.Ignore);
+        foreach(Collider hit in hits){
+            SendMessage("DAMAGE", -damage, SendMessageOptions.DontRequireReceiver);
+        }
+        yield return new WaitForSeconds(postAttackCooldown);  
+        ContinueBehaviour.Invoke();
+        Invoke(nameof(ResetInterAttackCooldown), interAttackCooldown);
+    }
+    public IEnumerator MidAttack(){
+        canAttack = false;
+        StandInPlace();
+        yield return new WaitForSeconds(preAttackWindUp);
+        ContinueBehaviour.Invoke();
+        Invoke(nameof(ResetInterAttackCooldown), interAttackCooldown);
+    }
+    public IEnumerator FarAttack(){
+        canAttack = false;
+        StandInPlace();
+        yield return new WaitForSeconds(preAttackWindUp);
+        ContinueBehaviour.Invoke();
+        Invoke(nameof(ResetInterAttackCooldown), interAttackCooldown);
+    }
     #endregion
 
-    public void Reposition(){
-        if(NavMesh.SamplePosition(target.transform.position + Random.insideUnitSphere * maxRepositionDistance, out NavMeshHit hit, 1.0f, NavMesh.AllAreas))
-            navMeshAgent.SetDestination(hit.position);
-        StateIncrement();
+    public void RepositionToRandomSpot(){
+        Vector3 randomDirection = Random.insideUnitSphere * repositionRange;
+
+        randomDirection += this.transform.position;
+        NavMeshHit hit;
+        NavMesh.SamplePosition(randomDirection, out hit, repositionRange, NavMesh.AllAreas);
+
+        navMeshAgent.SetDestination(hit.position);
     }
 
-    public void ResetAttack(){  // universal reset ig cba to change the names
-        if(isActive){
-            navMeshAgent.isStopped = false;
-            isAttacking = false;
-            StateIncrement();
-        }       
+
+    public void GetIntoRange(){
+        //sample position towards player position
+        Vector3 directedPos = target.position + Random.insideUnitSphere * repositionRange;
+
+        NavMeshHit hit;
+        NavMesh.SamplePosition(directedPos, out hit, repositionRange, NavMesh.AllAreas);
+
+        navMeshAgent.SetDestination(hit.position);
+        //Invoke("CancelActions", intentDecay);
+    }
+    //both of the checks below should be used as timed coroutines
+    private Coroutine rangeCoroutine;
+    public IEnumerator CheckIfInRange(){
+        print("checking if in range of movement");
+        float atRangeOf;
+        bool reachedGoal = false;
+
+        while(!reachedGoal){
+            yield return new WaitForSeconds(0.1f);
+            atRangeOf = CheckRangeToTarget();
+
+            if(atRangeOf < farRange){
+                print("Got into range!");
+                ContinueBehaviour.Invoke();
+                StandInPlace();
+                reachedGoal = true;
+                yield return false;
+            }
+            else if(navMeshAgent.remainingDistance < 2.0f){
+                print("At player object somehow");
+                ContinueBehaviour.Invoke();
+                reachedGoal = true;
+                yield return false;
+            }
+        }
+        print("CHECK RANGE COMPLETE");
     }
 
-    public void Stagger(){
-        navMeshAgent.isStopped = true;
-        Invoke(nameof(ResetAttack), staggerTime);
+    public void StandInPlace(){
+        navMeshAgent.SetDestination(this.transform.position);
+    }
+    private Coroutine mitd; //the one below
+    public IEnumerator MovementIntentTimeDecay(){
+        print("starting intent decay");
+        yield return new WaitForSeconds(intentDecay);
+        ContinueBehaviour.Invoke();
+        StandInPlace();
     }
 }

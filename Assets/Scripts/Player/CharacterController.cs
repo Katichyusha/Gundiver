@@ -17,7 +17,7 @@ public class CharacterController : MonoBehaviour
     public bool readyToJump;
     public float gravityValue;
     public float jetStrength;
-    private bool jetting;
+    public bool jetting;
 
     [Header("Ground check")]
     public float playerHeight;
@@ -147,6 +147,6 @@ public class CharacterController : MonoBehaviour
         else if (!jetting){
             stats.CancelOxyReduceInvoke();
         }
-        print("jetting");
+        //print("jetting");
     }
 }

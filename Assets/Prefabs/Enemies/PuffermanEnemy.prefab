@@ -992,16 +992,19 @@ MonoBehaviour:
   isActive: 0
   moveSpeed: 10
   damage: 0
-  shortRange: 4
-  mediumRange: 12
-  longRange: 24
+  closeRange: 3
+  midRange: 10
+  farRange: 20
   preAttackWindUp: 0.5
   postAttackCooldown: 0.5
   isAttacking: 0
-  staggerTime: 0.5
-  doingStateBehaviour: 0
-  maxRepositionDistance: 25
-  state: 0
+  canAttack: 0
+  attackIntent: 0
+  doingSomething: 0
+  reactionTime: 0.25
+  interAttackCooldown: 1.5
+  intentDecay: 1
+  repositionRange: 10
 --- !u!114 &3864457764316980891
 MonoBehaviour:
   m_ObjectHideFlags: 0
