@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -10,10 +12,10 @@ public class ActorParent : MonoBehaviour
     [SerializeField] protected Transform player;
     [SerializeField] protected Health hpScript;
     public bool isActive;
-    private Vector3 deathForceDir;
-    private List<RaycastHit> knockbackHits;
 
     [HideInInspector] protected NavMeshAgent navMeshAgent;
+    private Rigidbody[] ragdollRigidbodies;
+    private Task[] tasks;
 
     [Header("Stats")]
     public float moveSpeed; // enemies should have static moveSpeed cause why not
@@ -25,27 +27,28 @@ public class ActorParent : MonoBehaviour
         target = GameObject.FindGameObjectWithTag("Player").transform;
         this.GetComponent<Health>();
         isActive = true;
+        ragdollRigidbodies = GetComponentsInChildren<Rigidbody>();
         SetRigidBodyState(true);
-        SetColliderState(false);
+        SetColliderState(true);
     }
 
     protected virtual void Update() // designed to be overridden
     {
-        if(isActive)
-            navMeshAgent.SetDestination(target.position);
     }
 
-    public virtual void Die(){
-        this.CancelInvoke();
+    public void Die(){
         isActive = false;
+        this.CancelInvoke();
         Destroy(this.gameObject, 15f);
         GetComponentInChildren<Animator>().enabled = false;
         navMeshAgent.enabled = false;
         //navMeshAgent.isStopped = true;
+
         SetRigidBodyState(false);
         SetColliderState(true);
-        this.GetComponentInChildren<Rigidbody>().AddForce(-deathForceDir * hpScript.InformDamageBuffer() * 2f, ForceMode.Impulse);
-        this.GetComponentInChildren<Rigidbody>().AddTorque(deathForceDir * hpScript.InformDamageBuffer() * 2f, ForceMode.Impulse);
+
+        //this.GetComponentInChildren<Rigidbody>().AddForce(-deathForceDir * hpScript.InformDamageBuffer() * 2f, ForceMode.Impulse);
+        //this.GetComponentInChildren<Rigidbody>().AddTorque(deathForceDir * hpScript.InformDamageBuffer() * 2f, ForceMode.Impulse);
     }
 
     public virtual void DieGib(){
@@ -55,18 +58,12 @@ public class ActorParent : MonoBehaviour
         this.GetComponent<NavMeshAgent>().enabled = false;
     }
 
-    public void Knockback(Vector3 direction){
-        deathForceDir = direction;
-    }
-
     public void Gib(){
 
     }
 
     void SetRigidBodyState(bool state){
-        Rigidbody[] rigidbodies = GetComponentsInChildren<Rigidbody>();
-
-        foreach(Rigidbody ribo in rigidbodies){
+        foreach(Rigidbody ribo in ragdollRigidbodies){
             ribo.isKinematic = state;
         }
 

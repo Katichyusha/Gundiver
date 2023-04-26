@@ -22,29 +22,48 @@ public class FireDB : MonoBehaviour
     [SerializeField] private LayerMask whatIsEnemy;
     [SerializeField] private PlayerStats stats;
 
-    public void Shoot(){
+    public void Shoot(bool altFire){
+        Primary(altFire);
+    }
+
+    public void Primary(bool altFire){
         if(currAmmo != 0 && canShoot){
+
+            int pelletNumModifier = 1;
+            if(altFire){
+                pelletNumModifier = 2;
+            }
+
             canShoot = false;
-            Invoke(nameof(ShootTimeout), 1/ROF);
+            Invoke(nameof(ShootTimeout), 1/ROF * pelletNumModifier);
+
             anim.SetBool("shot", true);
+            anim.speed = 1f/pelletNumModifier;
+
             SoundManager.Instance.PlayOneShot(shotSound, SoundManager.sourceTypes.wep);
+
             RaycastHit hitInfo;
             Rigidbody hitRb;
             Vector3 forceDir;
 
-            currAmmo--;
+            currAmmo--; //to be linked with playerstats
 
-            for(int i=0; i<numOfPellets; i++){
+            for(int i=0; i<numOfPellets * pelletNumModifier; i++){
                 Vector3 accModifier = new Vector3(Random.Range(-maxAccuracy, maxAccuracy), Random.Range(-maxAccuracy, maxAccuracy), Random.Range(-maxAccuracy, maxAccuracy));
                 Debug.DrawRay(shotOrigin.transform.position + shotPosAdjust, (Camera.main.transform.forward + accModifier) * maxRange, Color.red, 1f);
 
                 if(Physics.Raycast(shotOrigin.transform.position + shotPosAdjust, Camera.main.transform.forward + accModifier, out hitInfo, maxRange, whatIsEnemy)){
                     forceDir = hitInfo.point - shotOrigin.transform.position;
-                    hitInfo.collider.SendMessage("DAMAGE", -damage, SendMessageOptions.DontRequireReceiver);
+                    hitInfo.collider.SendMessageUpwards("DAMAGE", -damage, SendMessageOptions.DontRequireReceiver);
+
                     if(hitInfo.collider.gameObject.TryGetComponent<Rigidbody>(out hitRb))
-                        hitRb.AddForce(forceDir.normalized * shotForce, ForceMode.Impulse);
-                    else
-                        hitInfo.collider.gameObject.SendMessage("Knockback", forceDir.normalized, SendMessageOptions.DontRequireReceiver);
+                    {
+                        //hitRb.AddForce(forceDir.normalized * shotForce, ForceMode.Impulse);
+                        
+                        StartCoroutine(SendKnockbackToTarget(hitInfo.rigidbody, hitInfo.point, forceDir.normalized * shotForce));
+                    }
+                        
+                    
                     if(hitInfo.collider.CompareTag("WORLD"))
                         DecalManager.Instance.SpawnDecalFromRay(hitInfo, 0);
                 }
@@ -54,10 +73,17 @@ public class FireDB : MonoBehaviour
                 //make empty sound
             }
     }
+
+    public IEnumerator SendKnockbackToTarget(Rigidbody objToSendTo, Vector3 hitPoint, Vector3 forceDirection){
+        yield return new WaitForEndOfFrame();
+        objToSendTo.AddForceAtPosition(forceDirection, hitPoint, ForceMode.Impulse);
+        yield return null;
+    }
     
     public void ShootTimeout(){
         canShoot = true;
         anim.SetBool("shot", false);
+        anim.speed = 1f;
     }
 
 }

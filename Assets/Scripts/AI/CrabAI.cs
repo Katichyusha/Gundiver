@@ -19,14 +19,17 @@ public class CrabAI : ActorParent
     // Update is called once per frame
     protected override void Update()
     {
-        base.Update();
+        if(isActive){
+            navMeshAgent.SetDestination(target.position);
 
-        if(Vector3.Distance(this.transform.position, target.position) < range && !isAttacking && isActive){
-            isAttacking = true;
-            navMeshAgent.isStopped = true;
-            Invoke(nameof(Attack), preAttackWindUp);
-            //print("invoked attack");
+            if(Vector3.Distance(this.transform.position, target.position) < range && !isAttacking && isActive){
+                isAttacking = true;
+                navMeshAgent.isStopped = true;
+                Invoke(nameof(Attack), preAttackWindUp);
+                //print("invoked attack");
+            }
         }
+
     }
 
     public void Attack(){

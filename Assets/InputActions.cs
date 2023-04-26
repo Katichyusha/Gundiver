@@ -55,9 +55,18 @@ public partial class @InputActions : IInputActionCollection2, IDisposable
                     ""initialStateCheck"": true
                 },
                 {
-                    ""name"": ""Shoot"",
+                    ""name"": ""PrimaryFire"",
                     ""type"": ""Button"",
                     ""id"": ""f8dd1856-fc9a-4e78-aeac-727cf71d6c3d"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""SecondaryFire"",
+                    ""type"": ""Button"",
+                    ""id"": ""e9015758-ca01-462b-a6b0-6f8de38636f1"",
                     ""expectedControlType"": ""Button"",
                     ""processors"": """",
                     ""interactions"": """",
@@ -147,7 +156,7 @@ public partial class @InputActions : IInputActionCollection2, IDisposable
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
-                    ""action"": ""Shoot"",
+                    ""action"": ""PrimaryFire"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
@@ -172,6 +181,17 @@ public partial class @InputActions : IInputActionCollection2, IDisposable
                     ""action"": ""Jet"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""9c5275e5-5783-4caa-9cd9-3390b8e7ab74"",
+                    ""path"": ""<Mouse>/rightButton"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""SecondaryFire"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -183,7 +203,8 @@ public partial class @InputActions : IInputActionCollection2, IDisposable
         m_MK_Movement = m_MK.FindAction("Movement", throwIfNotFound: true);
         m_MK_Look = m_MK.FindAction("Look", throwIfNotFound: true);
         m_MK_Jump = m_MK.FindAction("Jump", throwIfNotFound: true);
-        m_MK_Shoot = m_MK.FindAction("Shoot", throwIfNotFound: true);
+        m_MK_PrimaryFire = m_MK.FindAction("PrimaryFire", throwIfNotFound: true);
+        m_MK_SecondaryFire = m_MK.FindAction("SecondaryFire", throwIfNotFound: true);
         m_MK_Jet = m_MK.FindAction("Jet", throwIfNotFound: true);
     }
 
@@ -247,7 +268,8 @@ public partial class @InputActions : IInputActionCollection2, IDisposable
     private readonly InputAction m_MK_Movement;
     private readonly InputAction m_MK_Look;
     private readonly InputAction m_MK_Jump;
-    private readonly InputAction m_MK_Shoot;
+    private readonly InputAction m_MK_PrimaryFire;
+    private readonly InputAction m_MK_SecondaryFire;
     private readonly InputAction m_MK_Jet;
     public struct MKActions
     {
@@ -256,7 +278,8 @@ public partial class @InputActions : IInputActionCollection2, IDisposable
         public InputAction @Movement => m_Wrapper.m_MK_Movement;
         public InputAction @Look => m_Wrapper.m_MK_Look;
         public InputAction @Jump => m_Wrapper.m_MK_Jump;
-        public InputAction @Shoot => m_Wrapper.m_MK_Shoot;
+        public InputAction @PrimaryFire => m_Wrapper.m_MK_PrimaryFire;
+        public InputAction @SecondaryFire => m_Wrapper.m_MK_SecondaryFire;
         public InputAction @Jet => m_Wrapper.m_MK_Jet;
         public InputActionMap Get() { return m_Wrapper.m_MK; }
         public void Enable() { Get().Enable(); }
@@ -276,9 +299,12 @@ public partial class @InputActions : IInputActionCollection2, IDisposable
                 @Jump.started -= m_Wrapper.m_MKActionsCallbackInterface.OnJump;
                 @Jump.performed -= m_Wrapper.m_MKActionsCallbackInterface.OnJump;
                 @Jump.canceled -= m_Wrapper.m_MKActionsCallbackInterface.OnJump;
-                @Shoot.started -= m_Wrapper.m_MKActionsCallbackInterface.OnShoot;
-                @Shoot.performed -= m_Wrapper.m_MKActionsCallbackInterface.OnShoot;
-                @Shoot.canceled -= m_Wrapper.m_MKActionsCallbackInterface.OnShoot;
+                @PrimaryFire.started -= m_Wrapper.m_MKActionsCallbackInterface.OnPrimaryFire;
+                @PrimaryFire.performed -= m_Wrapper.m_MKActionsCallbackInterface.OnPrimaryFire;
+                @PrimaryFire.canceled -= m_Wrapper.m_MKActionsCallbackInterface.OnPrimaryFire;
+                @SecondaryFire.started -= m_Wrapper.m_MKActionsCallbackInterface.OnSecondaryFire;
+                @SecondaryFire.performed -= m_Wrapper.m_MKActionsCallbackInterface.OnSecondaryFire;
+                @SecondaryFire.canceled -= m_Wrapper.m_MKActionsCallbackInterface.OnSecondaryFire;
                 @Jet.started -= m_Wrapper.m_MKActionsCallbackInterface.OnJet;
                 @Jet.performed -= m_Wrapper.m_MKActionsCallbackInterface.OnJet;
                 @Jet.canceled -= m_Wrapper.m_MKActionsCallbackInterface.OnJet;
@@ -295,9 +321,12 @@ public partial class @InputActions : IInputActionCollection2, IDisposable
                 @Jump.started += instance.OnJump;
                 @Jump.performed += instance.OnJump;
                 @Jump.canceled += instance.OnJump;
-                @Shoot.started += instance.OnShoot;
-                @Shoot.performed += instance.OnShoot;
-                @Shoot.canceled += instance.OnShoot;
+                @PrimaryFire.started += instance.OnPrimaryFire;
+                @PrimaryFire.performed += instance.OnPrimaryFire;
+                @PrimaryFire.canceled += instance.OnPrimaryFire;
+                @SecondaryFire.started += instance.OnSecondaryFire;
+                @SecondaryFire.performed += instance.OnSecondaryFire;
+                @SecondaryFire.canceled += instance.OnSecondaryFire;
                 @Jet.started += instance.OnJet;
                 @Jet.performed += instance.OnJet;
                 @Jet.canceled += instance.OnJet;
@@ -310,7 +339,8 @@ public partial class @InputActions : IInputActionCollection2, IDisposable
         void OnMovement(InputAction.CallbackContext context);
         void OnLook(InputAction.CallbackContext context);
         void OnJump(InputAction.CallbackContext context);
-        void OnShoot(InputAction.CallbackContext context);
+        void OnPrimaryFire(InputAction.CallbackContext context);
+        void OnSecondaryFire(InputAction.CallbackContext context);
         void OnJet(InputAction.CallbackContext context);
     }
 }

@@ -9,6 +9,7 @@ public class PlayerStats : MonoBehaviour
 
     public Health playerHealth;
 
+    public float maxOxygen = 100f;
     public float oxygen = 100f;
     public float oxyReductionAmt = 1f;
     public float oxyReductionInterval = 0.2f;

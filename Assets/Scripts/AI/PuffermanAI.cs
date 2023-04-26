@@ -16,7 +16,9 @@ public class PuffermanAI : ActorParent
     public bool isAttacking;
     public bool canAttack; // governed by inter attack cd
     public bool attackIntent;
-    //public bool doingSomething;
+    
+    public GameObject midProjectile;
+    public GameObject farProjectile;
 
     [Header("Behaviour Settings")]
     public float reactionTime = 0.25f; // base
@@ -42,37 +44,42 @@ public class PuffermanAI : ActorParent
         BeginBehaviourRoutine();
     }
 
+    protected override void Update()
+    {
+        
+    }
+
     private Coroutine br;
     /*  wait until AI can react to player
         check what attack it can perform at current range from player
         if it can attack, use decided state to start an attack routine
         else reposition to a random point*/
     public IEnumerator BehaviourRoutine(){
-        print("behaviour routine starting");
+        //print("behaviour routine starting");
         yield return new WaitForSeconds(reactionTime);
 
-        print("checking attack decision");
+        //print("checking attack decision");
         NextAction tempAction = CheckAttack();
 
         if(canAttack){
             switch(tempAction){
                 case NextAction.close:
-                    print("starting close attack");
+                    //print("starting close attack");
                     att = StartCoroutine(nameof(CloseAttack));
                     break;
 
                 case NextAction.mid:
-                    print("starting mid attack");
+                    //print("starting mid attack");
                     att = StartCoroutine(nameof(MidAttack));
                     break;
 
                 case NextAction.far:
-                    print("starting far attack");
+                    //print("starting far attack");
                     att = StartCoroutine(nameof(FarAttack));
                     break;
 
                 case NextAction.assault:
-                    print("starting to get into range");
+                    //print("starting to get into range");
                     GetIntoRange();
                     att = StartCoroutine(nameof(CheckIfInRange));
                     break;
@@ -84,7 +91,7 @@ public class PuffermanAI : ActorParent
             }
         }
         else if(!canAttack){
-            print("repositioning after decision");
+            //print("repositioning after decision");
             mitd = StartCoroutine(nameof(MovementIntentTimeDecay));
             RepositionToRandomSpot();
         }
@@ -100,7 +107,7 @@ public class PuffermanAI : ActorParent
 
     // checks the distance to player while ignoring the y coordinate, called only when needed
     public float CheckRangeToTarget(){
-        print("checking range to target");
+        //print("checking range to target");
         Vector3 dist1 = this.transform.position;
         dist1.y = 0;
         Vector3 dist2 = target.position;
@@ -111,7 +118,7 @@ public class PuffermanAI : ActorParent
     }
 
     public void ResetInterAttackCooldown(){
-        print("interattack cooldown has reset");
+        //print("interattack cooldown has reset");
         canAttack = true;
     }
 
@@ -120,29 +127,29 @@ public class PuffermanAI : ActorParent
         and if it fails to be gotten then the attack routine is cancelled*/
     private Coroutine att;
     public NextAction CheckAttack(){
-        print("checking attack");
+       // print("checking attack");
         float atRangeOf = CheckRangeToTarget();
         CharacterController targetCC;
 
         if(!target.TryGetComponent<CharacterController>(out targetCC)){ // probably wont ever happen
-            print("target character controller not found");
+            //print("target character controller not found");
             return NextAction.reposition;
         }
 
         if((midRange < atRangeOf && atRangeOf <= farRange) || targetCC.jetting){
-            print("far attack decided");
+            //print("far attack decided");
             return NextAction.far;
         }
         else if(atRangeOf <= closeRange){
-            print("close attack decided");
+            //print("close attack decided");
             return NextAction.close;
         }
         else if((closeRange < atRangeOf && atRangeOf <= midRange) && !targetCC.jetting){
-            print("mid attack decided");
+            //print("mid attack decided");
             return NextAction.mid;
         }
         else{
-            print("assault decided");
+            //print("assault decided");
             return NextAction.assault;
         }
     }
@@ -156,7 +163,7 @@ public class PuffermanAI : ActorParent
         Collider[] hits;
         hits = Physics.OverlapSphere(this.transform.position, closeRange/2, whatIsTarget, QueryTriggerInteraction.Ignore);
         foreach(Collider hit in hits){
-            SendMessage("DAMAGE", -damage, SendMessageOptions.DontRequireReceiver);
+            hit.SendMessage("DAMAGE", -damage, SendMessageOptions.DontRequireReceiver);
         }
         yield return new WaitForSeconds(postAttackCooldown);  
         ContinueBehaviour.Invoke();
@@ -166,13 +173,33 @@ public class PuffermanAI : ActorParent
         canAttack = false;
         StandInPlace();
         yield return new WaitForSeconds(preAttackWindUp);
+
+        var tempGO = Instantiate(midProjectile, this.transform.position + Vector3.up * 2f, Quaternion.LookRotation(target.position - this.transform.position));
+        var tempProj = tempGO.GetComponent<Projectile>();
+
+        tempProj.targetToFollow = this.target;
+        tempProj.damage = this.damage * 2f;
+
+        yield return new WaitForSeconds(postAttackCooldown);
         ContinueBehaviour.Invoke();
         Invoke(nameof(ResetInterAttackCooldown), interAttackCooldown);
     }
     public IEnumerator FarAttack(){
         canAttack = false;
         StandInPlace();
+
         yield return new WaitForSeconds(preAttackWindUp);
+
+        //print("spawning projectile");
+
+        var tempGO = Instantiate(farProjectile, this.transform.position + Vector3.up * 2f, Quaternion.LookRotation(target.position - this.transform.position));
+        var tempProj = tempGO.GetComponent<Projectile>();
+
+        tempProj.targetToFollow = this.target;
+        tempProj.damage = this.damage * 1.6f;
+
+        yield return new WaitForSeconds(postAttackCooldown);
+
         ContinueBehaviour.Invoke();
         Invoke(nameof(ResetInterAttackCooldown), interAttackCooldown);
     }
@@ -202,7 +229,7 @@ public class PuffermanAI : ActorParent
     //both of the checks below should be used as timed coroutines
     private Coroutine rangeCoroutine;
     public IEnumerator CheckIfInRange(){
-        print("checking if in range of movement");
+        //print("checking if in range of movement");
         float atRangeOf;
         bool reachedGoal = false;
 
@@ -211,20 +238,20 @@ public class PuffermanAI : ActorParent
             atRangeOf = CheckRangeToTarget();
 
             if(atRangeOf < farRange){
-                print("Got into range!");
+                //print("Got into range!");
                 ContinueBehaviour.Invoke();
                 StandInPlace();
                 reachedGoal = true;
                 yield return false;
             }
             else if(navMeshAgent.remainingDistance < 2.0f){
-                print("At player object somehow");
+                //print("At player object somehow");
                 ContinueBehaviour.Invoke();
                 reachedGoal = true;
                 yield return false;
             }
         }
-        print("CHECK RANGE COMPLETE");
+        //print("CHECK RANGE COMPLETE");
     }
 
     public void StandInPlace(){
@@ -232,7 +259,7 @@ public class PuffermanAI : ActorParent
     }
     private Coroutine mitd; //the one below
     public IEnumerator MovementIntentTimeDecay(){
-        print("starting intent decay");
+        //print("starting intent decay");
         yield return new WaitForSeconds(intentDecay);
         ContinueBehaviour.Invoke();
         StandInPlace();

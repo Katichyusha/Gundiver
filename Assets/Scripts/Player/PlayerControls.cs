@@ -10,11 +10,17 @@ public class PlayerControls : MonoBehaviour
     public MouseLook mLook;
     public PlayerStats stats;
 
-    public void OnShoot(InputValue inputValue){
+    public void OnPrimaryFire(InputValue inputValue){
         if(inputValue.isPressed){
-            weapon.SendMessage("Shoot", SendMessageOptions.DontRequireReceiver);
+            weapon.SendMessage("Shoot", false, SendMessageOptions.DontRequireReceiver);
             //print("shot");
         } 
+    }
+
+    public void OnSecondaryFire(InputValue inputValue){
+        if(inputValue.isPressed){
+            weapon.SendMessage("Shoot", true, SendMessageOptions.DontRequireReceiver);
+        }
     }
 
     public void OnJump(InputValue value){

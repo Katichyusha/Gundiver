@@ -10,6 +10,7 @@ public class Health : MonoBehaviour
     public float currHP;
     public AudioClip[] sounds;
     private float damageBuffer;
+    [HideInInspector] public bool isDead;
 
     public UnityEvent onDamage;
     public UnityEvent onDeath;
@@ -20,17 +21,25 @@ public class Health : MonoBehaviour
     }
 
     public void Update(){
-        if(damageBuffer!=0){
-            currHP += damageBuffer;
-            if(damageBuffer > 0)
-                onHeal.Invoke();
-            else if(damageBuffer < 0){
-                onDamage.Invoke();
+
+        if(currHP > 0 && !isDead){
+            if(damageBuffer!=0){
+                currHP += damageBuffer;
+
+                if(damageBuffer > 0)
+                    onHeal.Invoke();
+
+                else if(damageBuffer < 0)
+                    onDamage.Invoke();
+                    
+                if(currHP <= 0){
+                    onDeath.Invoke();
+                    isDead = true;
+                }
             }
-            if(currHP <= 0)
-                onDeath.Invoke();
+
+            damageBuffer = 0;
         }
-        damageBuffer = 0;
     }
 
     public void DAMAGE(float value){
